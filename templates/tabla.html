@@ -1,0 +1,9 @@
+<table border="1">
+  <tr><th>Tiempo</th><th>Valor</th></tr>
+  {% for punto in datos %}
+    <tr>
+      <td>{{ punto.time }}</td>
+      <td>{{ punto.valor }}</td>
+    </tr>
+  {% endfor %}
+</table>

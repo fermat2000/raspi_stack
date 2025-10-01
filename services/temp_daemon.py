@@ -1,0 +1,26 @@
+import time
+from datetime import datetime
+from influxdb import InfluxDBClient
+
+def leer_temperatura():
+    # Simulación: reemplazá con lectura real si tenés sensor
+    return 22.5
+
+def escribir_en_influx(valor):
+    client = InfluxDBClient(host='localhost', port=8086)
+    client.switch_database('metrics')
+
+    punto = [{
+        "measurement": "temperatura",
+        "time": datetime.utcnow().isoformat(),
+        "fields": {"valor": valor}
+    }]
+
+    client.write_points(punto)
+    print(f"[{datetime.now()}] Temperatura enviada: {valor}°C")
+
+if __name__ == "__main__":
+    while True:
+        temp = leer_temperatura()
+        escribir_en_influx(temp)
+        time.sleep(300)  # 5 minutos
