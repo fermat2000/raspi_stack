@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Endpoints Disponibles - API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+        }
+        
+        .stat-item {
+            display: inline-block;
+            margin: 0 20px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .category {
+            margin-bottom: 40px;
+        }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .category-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        
+        .category-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .endpoints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .endpoint-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .endpoint-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
+        
+        .endpoint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .endpoint-url {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #007bff;
+            text-decoration: none;
+            flex: 1;
+        }
+        
+        .endpoint-url:hover {
+            text-decoration: underline;
+        }
+        
+        .response-type {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        .response-json {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .response-html {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .response-text {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .methods {
+            margin-bottom: 15px;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            margin-right: 5px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .method-get {
+            background: #28a745;
+            color: white;
+        }
+        
+        .method-post {
+            background: #007bff;
+            color: white;
+        }
+        
+        .method-put {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .method-delete {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .endpoint-description {
+            color: #6c757d;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .try-button {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .try-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(0,123,255,0.3);
+        }
+        
+        .navigation {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .nav-link {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .endpoints-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stat-item {
+                margin: 5px 10px;
+            }
+        }
+        
+        .copy-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-left: 5px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .copy-button:hover {
+            opacity: 1;
+        }
+        
+        .copied {
+            background: #28a745 !important;
+        }
+        
+        .search-box {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .search-input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            width: 300px;
+            max-width: 100%;
+            font-size: 1rem;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 10px rgba(0,123,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 API Documentation</h1>
+            <div class="subtitle">Endpoints disponibles en la aplicación</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ total_endpoints }}</div>
+                <div class="stat-label">Endpoints Totales</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ categorias|length }}</div>
+                <div class="stat-label">Categorías</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="api-count">0</div>
+                <div class="stat-label">APIs JSON</div>
+            </div>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" class="search-input" placeholder="🔍 Buscar endpoints..." id="searchInput">
+        </div>
+        
+        <div class="content">
+            {% for categoria, endpoints in categorias.items() %}
+            <div class="category" data-category="{{ categoria }}">
+                <div class="category-header">
+                    <span class="category-icon">{{ endpoints[0].icon }}</span>
+                    <span class="category-title">{{ categoria }}</span>
+                </div>
+                
+                <div class="endpoints-grid">
+                    {% for endpoint in endpoints %}
+                    <div class="endpoint-card" data-url="{{ endpoint.url }}" data-description="{{ endpoint.description }}">
+                        <div class="endpoint-header">
+                            <a href="{{ endpoint.url }}" class="endpoint-url" target="_blank">
+                                {{ endpoint.url }}
+                                <button class="copy-button" onclick="copyToClipboard('{{ endpoint.url }}', this)">📋</button>
+                            </a>
+                            <span class="response-type response-{{ endpoint.response_type.lower() }}">
+                                {{ endpoint.response_type }}
+                            </span>
+                        </div>
+                        
+                        <div class="methods">
+                            {% for method in endpoint.methods %}
+                            <span class="method method-{{ method.lower() }}">{{ method }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="endpoint-description">
+                            {{ endpoint.description }}
+                        </div>
+                        
+                        <a href="{{ endpoint.url }}" class="try-button" target="_blank">
+                            🚀 Probar Endpoint
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="navigation">
+            <a href="/" class="nav-link">🏠 Inicio</a>
+            <a href="/endpoints" class="nav-link">📊 API JSON</a>
+            <a href="/tabla" class="nav-link">📋 Tabla Simple</a>
+            <a href="/tabla-paginada" class="nav-link">📄 Tabla Paginada</a>
+            <a href="/datos" class="nav-link">🔗 Datos JSON</a>
+        </div>
+    </div>
+    
+    <script>
+        // Contador de APIs JSON
+        document.addEventListener('DOMContentLoaded', function() {
+            const jsonApis = document.querySelectorAll('.response-json').length;
+            document.getElementById('api-count').textContent = jsonApis;
+        });
+        
+        // Función para copiar URL al portapapeles
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(window.location.origin + text).then(function() {
+                button.textContent = '✅';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '📋';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(function() {
+                // Fallback para navegadores que no soportan clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = window.location.origin + text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                button.textContent = '✅';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '📋';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+        
+        // Función de búsqueda
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const categories = document.querySelectorAll('.category');
+            
+            categories.forEach(function(category) {
+                let hasVisibleCards = false;
+                const cards = category.querySelectorAll('.endpoint-card');
+                
+                cards.forEach(function(card) {
+                    const url = card.dataset.url.toLowerCase();
+                    const description = card.dataset.description.toLowerCase();
+                    
+                    if (url.includes(searchTerm) || description.includes(searchTerm)) {
+                        card.style.display = 'block';
+                        hasVisibleCards = true;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // Mostrar/ocultar categoría completa
+                category.style.display = hasVisibleCards ? 'block' : 'none';
+            });
+        });
+        
+        // Efectos de hover para las tarjetas
+        document.querySelectorAll('.endpoint-card').forEach(function(card) {
+            card.addEventListener('mouseenter', function() {
+                this.style.borderColor = '#007bff';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.borderColor = '#e9ecef';
+            });
+        });
+    </script>
+</body>
+</html>

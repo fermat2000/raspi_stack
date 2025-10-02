@@ -203,5 +203,58 @@ def listar_endpoints():
         'endpoints': endpoints
     })
 
+@app.route('/endpoints-page')
+def endpoints_page():
+    """
+    Página HTML que muestra todos los endpoints disponibles en la aplicación de forma visual
+    """
+    endpoints = []
+    
+    for rule in app.url_map.iter_rules():
+        # Obtener información del endpoint
+        endpoint_info = {
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods - {'HEAD', 'OPTIONS'}),
+            'url': rule.rule,
+            'description': app.view_functions[rule.endpoint].__doc__ or 'Sin descripción disponible'
+        }
+        
+        # Agregar categoría basada en la URL
+        if '/api/' in rule.rule:
+            endpoint_info['category'] = 'API'
+            endpoint_info['icon'] = '🔗'
+        elif '/tabla' in rule.rule:
+            endpoint_info['category'] = 'Visualización'
+            endpoint_info['icon'] = '📊'
+        elif rule.rule in ['/', '/sistema']:
+            endpoint_info['category'] = 'Principal'
+            endpoint_info['icon'] = '🏠'
+        elif '/endpoints' in rule.rule:
+            endpoint_info['category'] = 'Documentación'
+            endpoint_info['icon'] = '📋'
+        else:
+            endpoint_info['category'] = 'Otros'
+            endpoint_info['icon'] = '⚙️'
+        
+        # Determinar el tipo de respuesta
+        if 'json' in endpoint_info['description'].lower() or '/api/' in rule.rule or rule.rule == '/datos':
+            endpoint_info['response_type'] = 'JSON'
+        elif 'html' in endpoint_info['description'].lower() or 'renderiza' in endpoint_info['description'].lower():
+            endpoint_info['response_type'] = 'HTML'
+        else:
+            endpoint_info['response_type'] = 'TEXT'
+        
+        endpoints.append(endpoint_info)
+    
+    # Agrupar endpoints por categoría
+    categorias = {}
+    for endpoint in endpoints:
+        cat = endpoint['category']
+        if cat not in categorias:
+            categorias[cat] = []
+        categorias[cat].append(endpoint)
+    
+    return render_template('endpoints_page.html', categorias=categorias, total_endpoints=len(endpoints))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
