@@ -7,6 +7,42 @@ import math
 
 app = Flask(__name__)
 
+def contar_registros_influxdb(client, measurement='temperatura'):
+    """
+    Función helper para contar registros en InfluxDB de manera eficiente
+    """
+    try:
+        # Método 1: Intentar con COUNT(*)
+        count_query = f'SELECT COUNT(*) FROM {measurement}'
+        result = client.query(count_query)
+        points = list(result.get_points())
+        
+        if points:
+            # Diferentes versiones de InfluxDB pueden usar diferentes nombres
+            point = points[0]
+            # Buscar la clave que contiene el conteo
+            for key, value in point.items():
+                if 'count' in key.lower() or key == 'value':
+                    return int(value)
+        
+        # Método 2: Fallback - obtener una muestra y estimar
+        sample_query = f'SELECT * FROM {measurement} ORDER BY time DESC LIMIT 1000'
+        sample_result = client.query(sample_query)
+        sample_count = len(list(sample_result.get_points()))
+        
+        if sample_count == 1000:
+            # Si tenemos 1000 registros, probablemente hay más
+            # Hacer un conteo menos eficiente pero más preciso
+            all_query = f'SELECT time FROM {measurement}'
+            all_result = client.query(all_query)
+            return len(list(all_result.get_points()))
+        else:
+            return sample_count
+            
+    except Exception as e:
+        print(f"Error al contar registros: {e}")
+        return 0
+
 @app.route('/')
 def home():
     """
@@ -57,17 +93,15 @@ def tabla_paginada():
     # Validar parámetros
     if pagina < 1:
         pagina = 1
-    if por_pagina < 1 or por_pagina > 100:  # Límite máximo de 100 registros por página
+    if por_pagina < 1 or por_pagina > 20:  # Límite máximo de 100 registros por página
         por_pagina = 10
     
     # Conectar a InfluxDB
     client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
     
-    # Obtener el total de registros
-    total_query = 'SELECT COUNT(*) FROM temperatura'
-    total_result = client.query(total_query)
-    total_registros = list(total_result.get_points())[0]['count_value'] if total_result else 0
+    # Obtener el total de registros usando la función helper
+    total_registros = contar_registros_influxdb(client, 'temperatura')
     
     # Calcular offset para la paginación
     offset = (pagina - 1) * por_pagina
@@ -115,10 +149,8 @@ def api_datos_paginados():
     client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
     
-    # Obtener el total de registros
-    total_query = 'SELECT COUNT(*) FROM temperatura'
-    total_result = client.query(total_query)
-    total_registros = list(total_result.get_points())[0]['count_value'] if total_result else 0
+    # Obtener el total de registros usando la función helper
+    total_registros = contar_registros_influxdb(client, 'temperatura')
     
     # Calcular offset para la paginación
     offset = (pagina - 1) * por_pagina
