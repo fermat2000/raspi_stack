@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datos de Temperatura - Paginado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .paginacion {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .paginacion a, .paginacion span {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 0 4px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .paginacion a {
+            color: #007bff;
+            background-color: white;
+        }
+        .paginacion a:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .paginacion .actual {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .paginacion .deshabilitado {
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+        .info-paginacion {
+            text-align: center;
+            margin: 10px 0;
+            color: #6c757d;
+        }
+        .controles {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .controles select, .controles input {
+            padding: 5px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .controles button {
+            padding: 6px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .controles button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Datos de Temperatura (Paginado)</h1>
+        
+        <!-- Información de paginación -->
+        <div class="info-paginacion">
+            Mostrando {{ paginacion.inicio_registro }} - {{ paginacion.fin_registro }} 
+            de {{ paginacion.total_registros }} registros
+        </div>
+        
+        <!-- Controles de paginación -->
+        <div class="controles">
+            <form method="GET" style="display: inline;">
+                <label for="por_pagina">Registros por página:</label>
+                <select name="por_pagina" id="por_pagina" onchange="this.form.submit()">
+                    <option value="5" {% if paginacion.por_pagina == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if paginacion.por_pagina == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if paginacion.por_pagina == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if paginacion.por_pagina == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if paginacion.por_pagina == 100 %}selected{% endif %}>100</option>
+                </select>
+                <input type="hidden" name="pagina" value="1">
+            </form>
+            
+            <form method="GET" style="display: inline; margin-left: 20px;">
+                <label for="pagina">Ir a página:</label>
+                <input type="number" name="pagina" id="pagina" min="1" max="{{ paginacion.total_paginas }}" 
+                       value="{{ paginacion.pagina_actual }}" style="width: 60px;">
+                <input type="hidden" name="por_pagina" value="{{ paginacion.por_pagina }}">
+                <button type="submit">Ir</button>
+            </form>
+        </div>
+        
+        <!-- Tabla de datos -->
+        {% if datos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>🕒 Tiempo</th>
+                    <th>🌡️ Temperatura</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for punto in datos %}
+                <tr>
+                    <td>{{ punto.time }}</td>
+                    <td>{{ punto.valor }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #6c757d;">
+            📭 No hay datos disponibles
+        </div>
+        {% endif %}
+        
+        <!-- Navegación de páginas -->
+        <div class="paginacion">
+            <!-- Botón Primera página -->
+            {% if paginacion.tiene_anterior %}
+                <a href="?pagina=1&por_pagina={{ paginacion.por_pagina }}">« Primera</a>
+            {% else %}
+                <span class="deshabilitado">« Primera</span>
+            {% endif %}
+            
+            <!-- Botón Anterior -->
+            {% if paginacion.tiene_anterior %}
+                <a href="?pagina={{ paginacion.pagina_anterior }}&por_pagina={{ paginacion.por_pagina }}">‹ Anterior</a>
+            {% else %}
+                <span class="deshabilitado">‹ Anterior</span>
+            {% endif %}
+            
+            <!-- Números de página -->
+            {% set inicio_pagina = [paginacion.pagina_actual - 2, 1] | max %}
+            {% set fin_pagina = [paginacion.pagina_actual + 2, paginacion.total_paginas] | min %}
+            
+            {% if inicio_pagina > 1 %}
+                <a href="?pagina=1&por_pagina={{ paginacion.por_pagina }}">1</a>
+                {% if inicio_pagina > 2 %}
+                    <span>...</span>
+                {% endif %}
+            {% endif %}
+            
+            {% for num_pagina in range(inicio_pagina, fin_pagina + 1) %}
+                {% if num_pagina == paginacion.pagina_actual %}
+                    <span class="actual">{{ num_pagina }}</span>
+                {% else %}
+                    <a href="?pagina={{ num_pagina }}&por_pagina={{ paginacion.por_pagina }}">{{ num_pagina }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if fin_pagina < paginacion.total_paginas %}
+                {% if fin_pagina < paginacion.total_paginas - 1 %}
+                    <span>...</span>
+                {% endif %}
+                <a href="?pagina={{ paginacion.total_paginas }}&por_pagina={{ paginacion.por_pagina }}">{{ paginacion.total_paginas }}</a>
+            {% endif %}
+            
+            <!-- Botón Siguiente -->
+            {% if paginacion.tiene_siguiente %}
+                <a href="?pagina={{ paginacion.pagina_siguiente }}&por_pagina={{ paginacion.por_pagina }}">Siguiente ›</a>
+            {% else %}
+                <span class="deshabilitado">Siguiente ›</span>
+            {% endif %}
+            
+            <!-- Botón Última página -->
+            {% if paginacion.tiene_siguiente %}
+                <a href="?pagina={{ paginacion.total_paginas }}&por_pagina={{ paginacion.por_pagina }}">Última »</a>
+            {% else %}
+                <span class="deshabilitado">Última »</span>
+            {% endif %}
+        </div>
+        
+        <!-- Enlaces de navegación -->
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/" style="margin: 0 10px; color: #007bff; text-decoration: none;">🏠 Inicio</a>
+            <a href="/tabla" style="margin: 0 10px; color: #007bff; text-decoration: none;">📋 Tabla Simple</a>
+            <a href="/datos" style="margin: 0 10px; color: #007bff; text-decoration: none;">📊 API JSON</a>
+            <a href="/endpoints" style="margin: 0 10px; color: #007bff; text-decoration: none;">🔗 Endpoints</a>
+        </div>
+    </div>
+</body>
+</html>
