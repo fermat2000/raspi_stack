@@ -1,0 +1,70 @@
+import platform
+
+sis = platform.system()
+mac = platform.machine()
+print("sistem:",sis)
+print("mac:",mac)
+
+import psutil
+import json
+from datetime import datetime
+from influxdb import InfluxDBClient
+
+def obtener_info_sistema():
+    info = {
+        "timestamp": datetime.now().isoformat(),
+        "cpu": {
+            "uso_porcentual": psutil.cpu_percent(interval=1),
+            "nucleos_logicos": psutil.cpu_count(logical=True),
+            "nucleos_fisicos": psutil.cpu_count(logical=False)
+        },
+        "ram": psutil.virtual_memory()._asdict(),
+	"disco": psutil.disk_usage('/')._asdict(),
+	"red": psutil.net_io_counters()._asdict(),
+        "procesos": []
+    }
+    procesos = []
+    for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent']):
+        try:
+            
+            procesos.append(proc.info)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    top5 = sorted(procesos, key=lambda p: p['cpu_percent'], reverse=True)[:5]
+    info["procesos"] =top5
+    return info
+
+def insertar_en_influx(info, host='localhost', port=8087, db='metrics'):
+    client = InfluxDBClient(host=host, port=port)
+    client.switch_database(db)
+    punto = {
+        "measurement": "sistema_info",
+        "tags": {
+            "host": platform.node(),
+            "sistema": platform.system(),
+            "arquitectura": platform.machine()
+        },
+        "time": info["timestamp"],
+        "fields": {
+            "cpu_uso_porcentual": float(info["cpu"]["uso_porcentual"]),
+            "cpu_nucleos_logicos": int(info["cpu"]["nucleos_logicos"]),
+            "cpu_nucleos_fisicos": int(info["cpu"]["nucleos_fisicos"]),
+            "ram_total": int(info["ram"]["total"]),
+            "ram_disponible": int(info["ram"]["available"]),
+            "ram_uso_porcentual": float(info["ram"]["percent"]),
+            "disco_total": int(info["disco"]["total"]),
+            "disco_usado": int(info["disco"]["used"]),
+            "disco_libre": int(info["disco"]["free"]),
+            "disco_uso_porcentual": float(info["disco"]["percent"]),
+            "red_bytes_enviados": int(info["red"]["bytes_sent"]),
+            "red_bytes_recibidos": int(info["red"]["bytes_recv"])
+        }
+    }
+    client.write_points([punto])
+
+# Imprimir como JSON
+if __name__ == "__main__":
+    datos = obtener_info_sistema()
+    datos = insertar_en_influx(datos)
+    # print(json.dumps(info=datos, indent=2))
+

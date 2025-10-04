@@ -3,7 +3,8 @@ from influxdb import InfluxDBClient
 from datetime import datetime
 import subprocess
 import math
-
+import platform
+import psutil
 
 app = Flask(__name__)
 
@@ -46,36 +47,54 @@ def contar_registros_influxdb(client, measurement='temperatura'):
 @app.route('/')
 def home():
     """
-    Endpoint principal que muestra la fecha/hora actual y la temperatura de la Raspberry Pi
+    Endpoint principal que muestra la fecha/hora actual y la temperatura del sistema
     """
     fh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    temp = subprocess.check_output(["vcgencmd", "measure_temp"]).decode()
-    temp = temp.replace("temp=", "").strip()
-    return f"Hola desde Flask Raspberry - Fecha y hora: {fh} - Temperatura: {temp}"    
-##    return "¡Hola Fer desde Flask sin Docker!"
+    try:
+        # Intentar obtener temperatura usando psutil
+        if hasattr(psutil, 'sensors_temperatures'):
+            temps = psutil.sensors_temperatures()
+            if temps:
+                for name, entries in temps.items():
+                    if entries:
+                        temp = f"{entries[0].current:.1f}°C"
+                        break
+                else:
+                    temp = "N/A (sin sensores)"
+            else:
+                temp = "N/A (sin sensores)"
+        else:
+            temp = "N/A (psutil sin soporte)"
+    except Exception as e:
+        temp = f"N/A (error: {str(e)})"
+    sistema = platform.system()
+    arquitectura = platform.machine()
+    return jsonify({
+        "sistema": sistema,
+        "arquitectura": arquitectura,
+        "fecha_hora": fh,
+        "temperatura": temp,
+        "mensaje": "🐳 Flask en Docker"
+    })
 
 @app.route('/datos')
 def mostrar_datos():
     """
     Retorna los últimos datos de temperatura almacenados en InfluxDB en formato JSON
     """
-    client = InfluxDBClient(host='localhost', port=8086)
+    client = InfluxDBClient(host='influxdb_rp', port=8086)
     client.switch_database('metrics')
-
     # Consulta: últimos 10 puntos de "temperatura"
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC')
     puntos = list(resultados.get_points())
-
     return jsonify(puntos)  # Devuelve JSON
-
-from flask import render_template
 
 @app.route('/tabla')
 def tabla():
     """
     Renderiza una tabla HTML con los datos de temperatura desde InfluxDB
     """
-    client = InfluxDBClient(host='localhost', port=8086)
+    client = InfluxDBClient(host='influxdb_rp', port=8086)
     client.switch_database('metrics')
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC')
     puntos = list(resultados.get_points())
@@ -97,7 +116,7 @@ def tabla_paginada():
         por_pagina = 10
     
     # Conectar a InfluxDB
-    client = InfluxDBClient(host='localhost', port=8086)
+    client = InfluxDBClient(host='influxdb_rp', port=8086)
     client.switch_database('metrics')
     
     # Obtener el total de registros usando la función helper
@@ -146,7 +165,7 @@ def api_datos_paginados():
         por_pagina = 10
     
     # Conectar a InfluxDB
-    client = InfluxDBClient(host='localhost', port=8086)
+    client = InfluxDBClient(host='influxdb_rp', port=8086)
     client.switch_database('metrics')
     
     # Obtener el total de registros usando la función helper
@@ -255,6 +274,22 @@ def endpoints_page():
         categorias[cat].append(endpoint)
     
     return render_template('endpoints_page.html', categorias=categorias, total_endpoints=len(endpoints))
+
+    @app.route('/grafica')
+    def grafica():
+        """
+        Renderiza una página HTML con una gráfica de los datos de temperatura desde InfluxDB
+        """
+        client = InfluxDBClient(host='influxdb_rp', port=8086)
+        client.switch_database('metrics')
+        resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC LIMIT 100')
+        puntos = list(resultados.get_points())
+        # Invertir para mostrar la gráfica en orden cronológico
+        puntos = puntos[::-1]
+        # Extraer listas de tiempo y temperatura
+        tiempos = [p['time'] for p in puntos]
+        valores = [p.get('value', None) for p in puntos]
+        return render_template('grafica.html', tiempos=tiempos, valores=valores)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
