@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 Gráfica de Temperatura en Tiempo Real</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .chart-container {
+            padding: 30px;
+            position: relative;
+            height: 500px;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .navigation {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .nav-link {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px;
+            font-size: 1.1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .chart-container {
+                height: 400px;
+                padding: 15px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Gráfica de Temperatura</h1>
+            <div class="subtitle">Monitoreo en tiempo real de los últimos 100 registros</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalRegistros">{{ tiempos|length }}</div>
+                <div class="stat-label">Total de Registros</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="tempActual">
+                    {% if valores and valores[-1] %}
+                        {{ "%.1f"|format(valores[-1]) }}°C
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Temperatura Actual</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="tempPromedio">
+                    {% if valores %}
+                        {% set valid_values = valores | selectattr('none', 'ne') | list %}
+                        {% if valid_values %}
+                            {{ "%.1f"|format((valid_values | sum) / (valid_values | length)) }}°C
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Temperatura Promedio</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="ultimaActualizacion">
+                    {% if tiempos %}
+                        {{ tiempos[-1][:19] }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="stat-label">Última Actualización</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            {% if tiempos and valores %}
+                <canvas id="temperatureChart"></canvas>
+                <div class="loading" id="loading">
+                    <div>🔄 Actualizando datos...</div>
+                </div>
+            {% else %}
+                <div class="no-data">
+                    📭 No hay datos de temperatura disponibles
+                    <br><br>
+                    <button class="refresh-btn" onclick="location.reload()">🔄 Intentar de nuevo</button>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="chartType">Tipo de gráfica:</label>
+                <select id="chartType" onchange="updateChartType()">
+                    <option value="line">📈 Línea</option>
+                    <option value="bar">📊 Barras</option>
+                    <option value="area">📊 Área</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="timeRange">Rango de tiempo:</label>
+                <select id="timeRange" onchange="filterByTimeRange()">
+                    <option value="all">🕐 Todos</option>
+                    <option value="hour">🕐 Última hora</option>
+                    <option value="day">📅 Último día</option>
+                    <option value="week">📅 Última semana</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="autoRefresh">Auto-actualizar:</label>
+                <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                <span>cada 30s</span>
+            </div>
+            
+            <button class="refresh-btn" onclick="refreshData()">🔄 Actualizar Datos</button>
+        </div>
+        
+        <div class="navigation">
+            <a href="/" class="nav-link">🏠 Inicio</a>
+            <a href="/datos" class="nav-link">📊 API JSON</a>
+            <a href="/tabla" class="nav-link">📋 Tabla Simple</a>
+            <a href="/tabla-paginada" class="nav-link">📄 Tabla Paginada</a>
+            <a href="/endpoints-page" class="nav-link">📋 Documentación</a>
+        </div>
+    </div>
+
+    <script>
+        // Datos desde el servidor
+        const rawTimes = {{ tiempos | tojson }};
+        const rawValues = {{ valores | tojson }};
+        
+        // Procesar datos
+        let chartData = processData(rawTimes, rawValues);
+        let temperatureChart;
+        let autoRefreshInterval;
+        
+        function processData(times, values) {
+            const data = [];
+            for (let i = 0; i < times.length; i++) {
+                if (values[i] !== null && values[i] !== undefined) {
+                    data.push({
+                        x: new Date(times[i]),
+                        y: parseFloat(values[i])
+                    });
+                }
+            }
+            return data.sort((a, b) => a.x - b.x);
+        }
+        
+        function createChart() {
+            if (chartData.length === 0) return;
+            
+            const ctx = document.getElementById('temperatureChart');
+            if (!ctx) return;
+            
+            temperatureChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Temperatura (°C)',
+                        data: chartData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    minute: 'HH:mm',
+                                    hour: 'HH:mm',
+                                    day: 'DD/MM'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Tiempo'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Temperatura (°C)'
+                            },
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Temperatura: ${context.parsed.y.toFixed(1)}°C`;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+        
+        function updateChartType() {
+            if (!temperatureChart) return;
+            
+            const chartType = document.getElementById('chartType').value;
+            
+            temperatureChart.config.type = chartType;
+            
+            if (chartType === 'area') {
+                temperatureChart.config.type = 'line';
+                temperatureChart.data.datasets[0].fill = true;
+            } else {
+                temperatureChart.data.datasets[0].fill = false;
+            }
+            
+            temperatureChart.update();
+        }
+        
+        function filterByTimeRange() {
+            if (!temperatureChart) return;
+            
+            const range = document.getElementById('timeRange').value;
+            const now = new Date();
+            let filteredData = chartData;
+            
+            if (range !== 'all') {
+                const cutoff = new Date();
+                switch (range) {
+                    case 'hour':
+                        cutoff.setHours(cutoff.getHours() - 1);
+                        break;
+                    case 'day':
+                        cutoff.setDate(cutoff.getDate() - 1);
+                        break;
+                    case 'week':
+                        cutoff.setDate(cutoff.getDate() - 7);
+                        break;
+                }
+                
+                filteredData = chartData.filter(point => point.x >= cutoff);
+            }
+            
+            temperatureChart.data.datasets[0].data = filteredData;
+            temperatureChart.update();
+        }
+        
+        function toggleAutoRefresh() {
+            const autoRefresh = document.getElementById('autoRefresh').checked;
+            
+            if (autoRefresh) {
+                autoRefreshInterval = setInterval(refreshData, 30000); // 30 segundos
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+        
+        async function refreshData() {
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/grafica');
+                if (response.ok) {
+                    location.reload(); // Recargar la página para obtener nuevos datos
+                }
+            } catch (error) {
+                console.error('Error al actualizar datos:', error);
+            } finally {
+                if (loading) loading.style.display = 'none';
+            }
+        }
+        
+        // Inicializar gráfica cuando la página carga
+        document.addEventListener('DOMContentLoaded', function() {
+            if (chartData.length > 0) {
+                createChart();
+            }
+        });
+        
+        // Limpiar intervalo al salir de la página
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
