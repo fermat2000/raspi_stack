@@ -275,21 +275,21 @@ def endpoints_page():
     
     return render_template('endpoints_page.html', categorias=categorias, total_endpoints=len(endpoints))
 
-    @app.route('/grafica')
-    def grafica():
-        """
-        Renderiza una página HTML con una gráfica de los datos de temperatura desde InfluxDB
-        """
-        client = InfluxDBClient(host='localhost', port=8086)
-        client.switch_database('metrics')
-        resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC LIMIT 100')
-        puntos = list(resultados.get_points())
-        # Invertir para mostrar la gráfica en orden cronológico
-        puntos = puntos[::-1]
-        # Extraer listas de tiempo y temperatura
-        tiempos = [p['time'] for p in puntos]
-        valores = [p.get('value', None) for p in puntos]
-        return render_template('grafica.html', tiempos=tiempos, valores=valores)
+@app.route('/grafica')
+def grafica():
+    """
+    Renderiza una página HTML con una gráfica de los datos de temperatura desde InfluxDB
+    """
+    client = InfluxDBClient(host='localhost', port=8086)
+    client.switch_database('metrics')
+    resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC LIMIT 100')
+    puntos = list(resultados.get_points())
+    # Invertir para mostrar la gráfica en orden cronológico
+    puntos = puntos[::-1]
+    # Extraer listas de tiempo y temperatura
+    tiempos = [p['time'] for p in puntos]
+    valores = [p.get('value', None) for p in puntos]
+    return render_template('grafica.html', tiempos=tiempos, valores=valores)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
