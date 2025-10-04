@@ -82,7 +82,7 @@ def mostrar_datos():
     """
     Retorna los últimos datos de temperatura almacenados en InfluxDB en formato JSON
     """
-    client = InfluxDBClient(host='influxdb_rp', port=8086)
+    client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
     # Consulta: últimos 10 puntos de "temperatura"
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC')
@@ -94,7 +94,7 @@ def tabla():
     """
     Renderiza una tabla HTML con los datos de temperatura desde InfluxDB
     """
-    client = InfluxDBClient(host='influxdb_rp', port=8086)
+    client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC')
     puntos = list(resultados.get_points())
@@ -116,7 +116,7 @@ def tabla_paginada():
         por_pagina = 10
     
     # Conectar a InfluxDB
-    client = InfluxDBClient(host='influxdb_rp', port=8086)
+    client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
     
     # Obtener el total de registros usando la función helper
@@ -165,7 +165,7 @@ def api_datos_paginados():
         por_pagina = 10
     
     # Conectar a InfluxDB
-    client = InfluxDBClient(host='influxdb_rp', port=8086)
+    client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
     
     # Obtener el total de registros usando la función helper
@@ -280,7 +280,7 @@ def endpoints_page():
         """
         Renderiza una página HTML con una gráfica de los datos de temperatura desde InfluxDB
         """
-        client = InfluxDBClient(host='influxdb_rp', port=8086)
+        client = InfluxDBClient(host='localhost', port=8086)
         client.switch_database('metrics')
         resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC LIMIT 100')
         puntos = list(resultados.get_points())
