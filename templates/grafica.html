@@ -210,7 +210,7 @@
             <div class="stat-card">
                 <div class="stat-value" id="tempPromedio">
                     {% if valores %}
-                        {% set valid_values = valores | selectattr('none', 'ne') | list %}
+                        {% set valid_values = valores | reject('equalto', none) | list %}
                         {% if valid_values %}
                             {{ "%.1f"|format((valid_values | sum) / (valid_values | length)) }}°C
                         {% else %}

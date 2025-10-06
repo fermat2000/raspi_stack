@@ -1,4 +1,6 @@
 from flask import Flask, jsonify, render_template, request
+import os
+from dotenv import load_dotenv
 from influxdb import InfluxDBClient
 from datetime import datetime
 import subprocess
@@ -6,7 +8,22 @@ import math
 import platform
 import psutil
 
+
+load_dotenv()
 app = Flask(__name__)
+
+def get_influxdb_client():
+    host = os.environ.get('INFLUXDB_HOST', 'influxdb')
+    port = int(os.environ.get('INFLUXDB_PORT', 8086))
+    username = os.environ.get('INFLUXDB_USER')
+    password = os.environ.get('INFLUXDB_USER_PASSWORD')
+    database = os.environ.get('INFLUXDB_DATABASE', 'metrics')
+    if username and password:
+        client = InfluxDBClient(host=host, port=port, username=username, password=password)
+    else:
+        client = InfluxDBClient(host=host, port=port)
+    client.switch_database(database)
+    return client
 
 def contar_registros_influxdb(client, measurement='temperatura'):
     """
@@ -82,8 +99,7 @@ def mostrar_datos():
     """
     Retorna los últimos datos de temperatura almacenados en InfluxDB en formato JSON
     """
-    client = InfluxDBClient(host='localhost', port=8086)
-    client.switch_database('metrics')
+    client = get_influxdb_client()
     # Consulta: últimos 10 puntos de "temperatura"
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC')
     puntos = list(resultados.get_points())
@@ -94,8 +110,7 @@ def tabla():
     """
     Renderiza una tabla HTML con los datos de temperatura desde InfluxDB
     """
-    client = InfluxDBClient(host='localhost', port=8086)
-    client.switch_database('metrics')
+    client = get_influxdb_client()
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC')
     puntos = list(resultados.get_points())
     return render_template('tabla.html', datos=puntos)
@@ -116,8 +131,7 @@ def tabla_paginada():
         por_pagina = 10
     
     # Conectar a InfluxDB
-    client = InfluxDBClient(host='localhost', port=8086)
-    client.switch_database('metrics')
+    client = get_influxdb_client()
     
     # Obtener el total de registros usando la función helper
     total_registros = contar_registros_influxdb(client, 'temperatura')
@@ -165,8 +179,7 @@ def api_datos_paginados():
         por_pagina = 10
     
     # Conectar a InfluxDB
-    client = InfluxDBClient(host='localhost', port=8086)
-    client.switch_database('metrics')
+    client = get_influxdb_client()
     
     # Obtener el total de registros usando la función helper
     total_registros = contar_registros_influxdb(client, 'temperatura')
@@ -280,8 +293,7 @@ def grafica():
     """
     Renderiza una página HTML con una gráfica de los datos de temperatura desde InfluxDB
     """
-    client = InfluxDBClient(host='localhost', port=8086)
-    client.switch_database('metrics')
+    client = get_influxdb_client()
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC LIMIT 100')
     puntos = list(resultados.get_points())
     # Invertir para mostrar la gráfica en orden cronológico
@@ -292,4 +304,6 @@ def grafica():
     return render_template('grafica.html', tiempos=tiempos, valores=valores)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    host = os.environ.get('FLASK_HOST', '0.0.0.0')
+    port = int(os.environ.get('FLASK_PORT', 5000))
+    app.run(host=host, port=port)
