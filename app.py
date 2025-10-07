@@ -301,7 +301,7 @@ def grafica():
     puntos = puntos[::-1]
     # Extraer listas de tiempo y temperatura
     tiempos = [p['time'] for p in puntos]
-    valores = [p.get('value', None) for p in puntos]
+    valores = [p.get('valor', None) for p in puntos]
     return render_template('grafica.html', tiempos=tiempos, valores=valores)
 
 if __name__ == '__main__':
