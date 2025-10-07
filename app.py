@@ -13,7 +13,7 @@ load_dotenv()
 app = Flask(__name__)
 
 def get_influxdb_client():
-    host = os.environ.get('INFLUXDB_HOST', 'influxdb')
+    host = os.environ.get('INFLUXDB_HOST', 'localhost')
     port = int(os.environ.get('INFLUXDB_PORT', 8086))
     username = os.environ.get('INFLUXDB_USER')
     password = os.environ.get('INFLUXDB_USER_PASSWORD')
