@@ -27,7 +27,7 @@ def load_temps(n_iteraciones=10, delay=1):
         temp = round(random.uniform(20.0, 40.0), 2)
         punto = [{
             "measurement": "temperatura",
-            "fields": {"value": temp}
+            "fields": {"valor": temp}
         }]
         client.write_points(punto)
         print(f"Registro {i+1}: {temp}°C insertado.")
@@ -35,5 +35,5 @@ def load_temps(n_iteraciones=10, delay=1):
 
 if __name__ == "__main__":
     import sys
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 10
-    load_temps(n)
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 50
+    load_temps(n, 0.5)
