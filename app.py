@@ -296,7 +296,7 @@ def grafica():
     client = get_influxdb_client()
     resultados = client.query('SELECT * FROM temperatura ORDER BY time DESC LIMIT 100')
     puntos = list(resultados.get_points())
-    print(puntos)
+    
     # Invertir para mostrar la gráfica en orden cronológico
     puntos = puntos[::-1]
     # Extraer listas de tiempo y temperatura
