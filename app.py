@@ -161,6 +161,15 @@ def tabla_paginada():
         'fin_registro': offset + len(puntos)
     }
     
+    # Formatear las fechas para mostrar en la tabla
+    for punto in puntos:
+        # Convierte el string ISO a datetime y lo formatea
+        try:
+            dt = datetime.strptime(punto['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            punto['time_fmt'] = punto['time']  # fallback si falla el parseo
+    
     return render_template('tabla_paginada.html', datos=puntos, paginacion=paginacion)
 
 @app.route('/api/datos-paginados')
