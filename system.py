@@ -68,9 +68,9 @@ def insertar_en_influx(info):
     }
     client.write_points([punto])
 
-# Imprimir como JSON
 if __name__ == "__main__":
-    datos = obtener_info_sistema()
-    datos = insertar_en_influx(datos)
-    # print(json.dumps(info=datos, indent=2))
+    while True:
+        datos = obtener_info_sistema()
+        insertar_en_influx(datos)
+        time.sleep(900)  # 5 minutos
 

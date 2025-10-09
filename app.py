@@ -336,6 +336,70 @@ def sistema_info():
     else:
         return jsonify({"error": "No hay datos en sistema_info"}), 404
 
+@app.route('/tabla-sistema-info')
+def tabla_sistema_info():
+    """
+    Renderiza una tabla HTML con paginación y filtros de los datos de sistema_info desde InfluxDB
+    """
+    client = get_influxdb_client()
+    # Parámetros de paginación y filtro
+    pagina = int(request.args.get('pagina', 1))
+    por_pagina = int(request.args.get('por_pagina', 10))
+    host = request.args.get('host')
+    sistema = request.args.get('sistema')
+
+    # Construir la consulta con filtros
+    where = []
+    if host:
+        where.append(f"host='{host}'")
+    if sistema:
+        where.append(f"sistema='{sistema}'")
+    where_clause = f"WHERE {' AND '.join(where)}" if where else ""
+    query = f"SELECT * FROM sistema_info {where_clause} ORDER BY time DESC LIMIT {por_pagina} OFFSET {(pagina-1)*por_pagina}"
+    resultados = client.query(query)
+    puntos = list(resultados.get_points())
+
+    # Formatear la fecha
+    for punto in puntos:
+        try:
+            dt = datetime.strptime(punto['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            punto['time_fmt'] = punto['time']
+
+    # Obtener hosts y sistemas únicos para los filtros
+    hosts = set()
+    sistemas = set()
+    all_results = client.query("SELECT host, sistema FROM sistema_info")
+    for p in all_results.get_points():
+        hosts.add(p.get('host'))
+        sistemas.add(p.get('sistema'))
+
+    # Para paginación: contar total de registros
+    count_query = f"SELECT COUNT(*) FROM sistema_info {where_clause}"
+    count_result = client.query(count_query)
+    total = 0
+    for point in list(count_result.get_points()):
+        for key, value in point.items():
+            if 'count' in key.lower() or key == 'value':
+                total = int(value)
+                break
+
+    total_paginas = max(1, (total + por_pagina - 1) // por_pagina)
+
+    return render_template(
+        'tabla_sistema_info.html',
+        datos=puntos,
+        pagina=pagina,
+        por_pagina=por_pagina,
+        total_paginas=total_paginas,
+        total=total,
+        hosts=sorted(hosts),
+        sistemas=sorted(sistemas),
+        host_seleccionado=host,
+        sistema_seleccionado=sistema
+    )
+
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5000))

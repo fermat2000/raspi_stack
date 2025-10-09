@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tabla Sistema Info</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; }
+        .container { max-width: 1000px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }
+        h1 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 8px 6px; border: 1px solid #ddd; text-align: center; }
+        th { background: #4a90e2; color: #fff; }
+        tr:nth-child(even) { background: #eaf4fb; }
+        tr:hover { background: #d1eaff; transition: background 0.2s; }
+        .filtros { margin-bottom: 16px; }
+        .filtros select, .filtros input { padding: 4px 8px; margin-right: 8px; }
+        .paginacion { margin-top: 18px; text-align: center; }
+        .paginacion a, .paginacion span { margin: 0 3px; padding: 5px 10px; border-radius: 4px; text-decoration: none; }
+        .paginacion a { background: #4a90e2; color: #fff; }
+        .paginacion a:hover { background: #357abd; }
+        .paginacion .actual { background: #eaf4fb; color: #357abd; font-weight: bold; }
+        .paginacion .deshabilitado { background: #eee; color: #aaa; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Datos de Sistema Info</h1>
+    <form class="filtros" method="get">
+        <label>Host:
+            <select name="host">
+                <option value="">Todos</option>
+                {% for h in hosts %}
+                <option value="{{ h }}" {% if h == host_seleccionado %}selected{% endif %}>{{ h }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Sistema:
+            <select name="sistema">
+                <option value="">Todos</option>
+                {% for s in sistemas %}
+                <option value="{{ s }}" {% if s == sistema_seleccionado %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Por página:
+            <input type="number" name="por_pagina" value="{{ por_pagina }}" min="1" max="100">
+        </label>
+        <button type="submit">Filtrar</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha/Hora</th>
+                <th>Host</th>
+                <th>Sistema</th>
+                <th>Arquitectura</th>
+                <th>CPU (%)</th>
+                <th>RAM (%)</th>
+                <th>Disco (%)</th>
+                <th>Red Enviada (bytes)</th>
+                <th>Red Recibida (bytes)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for punto in datos %}
+            <tr>
+                <td>{{ punto.time_fmt }}</td>
+                <td>{{ punto.host }}</td>
+                <td>{{ punto.sistema }}</td>
+                <td>{{ punto.arquitectura }}</td>
+                <td style="color: {% if punto.cpu_uso_porcentual > 80 %}red{% elif punto.cpu_uso_porcentual > 50 %}orange{% else %}green{% endif %};">
+                    {{ punto.cpu_uso_porcentual }}
+                </td>
+                <td style="color: {% if punto.ram_uso_porcentual > 80 %}red{% elif punto.ram_uso_porcentual > 50 %}orange{% else %}green{% endif %};">
+                    {{ punto.ram_uso_porcentual }}
+                </td>
+                <td style="color: {% if punto.disco_uso_porcentual > 80 %}red{% elif punto.disco_uso_porcentual > 50 %}orange{% else %}green{% endif %};">
+                    {{ punto.disco_uso_porcentual }}
+                </td>
+                <td>{{ punto.red_bytes_enviados }}</td>
+                <td>{{ punto.red_bytes_recibidos }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="paginacion">
+        {% if pagina > 1 %}
+            <a href="?pagina=1&por_pagina={{ por_pagina }}{% if host_seleccionado %}&host={{ host_seleccionado }}{% endif %}{% if sistema_seleccionado %}&sistema={{ sistema_seleccionado }}{% endif %}">&laquo; Primera</a>
+            <a href="?pagina={{ pagina-1 }}&por_pagina={{ por_pagina }}{% if host_seleccionado %}&host={{ host_seleccionado }}{% endif %}{% if sistema_seleccionado %}&sistema={{ sistema_seleccionado }}{% endif %}">&lt; Anterior</a>
+        {% else %}
+            <span class="deshabilitado">&laquo; Primera</span>
+            <span class="deshabilitado">&lt; Anterior</span>
+        {% endif %}
+        <span class="actual">Página {{ pagina }} de {{ total_paginas }}</span>
+        {% if pagina < total_paginas %}
+            <a href="?pagina={{ pagina+1 }}&por_pagina={{ por_pagina }}{% if host_seleccionado %}&host={{ host_seleccionado }}{% endif %}{% if sistema_seleccionado %}&sistema={{ sistema_seleccionado }}{% endif %}">Siguiente &gt;</a>
+            <a href="?pagina={{ total_paginas }}&por_pagina={{ por_pagina }}{% if host_seleccionado %}&host={{ host_seleccionado }}{% endif %}{% if sistema_seleccionado %}&sistema={{ sistema_seleccionado }}{% endif %}">Última &raquo;</a>
+        {% else %}
+            <span class="deshabilitado">Siguiente &gt;</span>
+            <span class="deshabilitado">Última &raquo;</span>
+        {% endif %}
+    </div>
+    <div style="margin-top:10px; text-align:right; color:#888;">
+        Mostrando {{ datos|length }} de {{ total }} registros
+    </div>
+</div>
+</body>
+</html>
