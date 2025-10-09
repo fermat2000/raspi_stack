@@ -7,6 +7,7 @@ import subprocess
 import math
 import platform
 import psutil
+from sistema_info import get_info
 
 
 load_dotenv()
@@ -312,6 +313,28 @@ def grafica():
     tiempos = [p['time'] for p in puntos]
     valores = [p.get('valor', None) for p in puntos]
     return render_template('grafica.html', tiempos=tiempos, valores=valores)
+
+@app.route('/sistema')
+def sistema():
+    """
+    Retorna información del sistema en formato JSON
+    """
+    info = get_info()
+    return jsonify(info)
+
+@app.route('/sistema-info')
+def sistema_info():
+    """
+    Consulta los últimos datos insertados en la medición sistema_info de InfluxDB.
+    """
+    client = get_influxdb_client()
+    query = 'SELECT * FROM sistema_info ORDER BY time DESC LIMIT 1'
+    result = client.query(query)
+    points = list(result.get_points())
+    if points:
+        return jsonify(points[0])
+    else:
+        return jsonify({"error": "No hay datos en sistema_info"}), 404
 
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')

@@ -1,14 +1,17 @@
 import platform
-
-sis = platform.system()
-mac = platform.machine()
-print("sistem:",sis)
-print("mac:",mac)
-
 import psutil
 import json
 from datetime import datetime
 from influxdb import InfluxDBClient
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Carga las variables del archivo .env
+
+sistema = platform.system()
+maquina = platform.machine()
+print("sistema:",sistema)
+print("maquina:",maquina)
 
 def obtener_info_sistema():
     info = {
@@ -19,8 +22,8 @@ def obtener_info_sistema():
             "nucleos_fisicos": psutil.cpu_count(logical=False)
         },
         "ram": psutil.virtual_memory()._asdict(),
-	"disco": psutil.disk_usage('/')._asdict(),
-	"red": psutil.net_io_counters()._asdict(),
+	    "disco": psutil.disk_usage('/')._asdict(),
+	    "red": psutil.net_io_counters()._asdict(),
         "procesos": []
     }
     procesos = []
@@ -34,7 +37,10 @@ def obtener_info_sistema():
     info["procesos"] =top5
     return info
 
-def insertar_en_influx(info, host='localhost', port=8087, db='metrics'):
+def insertar_en_influx(info):
+    host = os.environ.get('INFLUXDB_HOST', 'localhost')
+    port = int(os.environ.get('INFLUXDB_PORT', 8087))
+    db = os.environ.get('INFLUXDB_DATABASE', 'metrics')
     client = InfluxDBClient(host=host, port=port)
     client.switch_database(db)
     punto = {

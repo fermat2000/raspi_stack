@@ -42,6 +42,7 @@ services:
     volumes:
       # Montar solo los archivos necesarios para desarrollo
       - ./app.py:/app/app.py
+      - ./sistema_info.py:/app/sistema_info.py
       - ./templates:/app/templates
       - ./services:/app/services
 
