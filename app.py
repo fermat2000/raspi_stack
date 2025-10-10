@@ -426,6 +426,22 @@ def servicios_activos_tabla():
     except Exception as e:
         return render_template('servicios_activos.html', servicios=[], error=str(e))
 
+@app.route('/indice')
+def indice():
+    """
+    Página índice con acceso a todos los endpoints disponibles
+    """
+    endpoints = []
+    for rule in app.url_map.iter_rules():
+        # Excluir endpoints internos de Flask
+        if rule.endpoint != 'static':
+            endpoints.append({
+                'url': rule.rule,
+                'methods': ', '.join(rule.methods - {'HEAD', 'OPTIONS'}),
+                'description': app.view_functions[rule.endpoint].__doc__ or 'Sin descripción'
+            })
+    return render_template('indice.html', endpoints=endpoints)
+
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5000))
