@@ -400,6 +400,32 @@ def tabla_sistema_info():
         sistema_seleccionado=sistema
     )
 
+@app.route('/servicios-activos-tabla')
+def servicios_activos_tabla():
+    """
+    Muestra la lista de servicios activos en una tabla HTML usando systemctl
+    """
+    try:
+        resultado = subprocess.run(
+            ["systemctl", "list-units", "--type=service", "--state=running", "--no-pager", "--no-legend"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True
+        )
+        servicios = []
+        for linea in resultado.stdout.strip().split('\n'):
+            if linea:
+                partes = linea.split()
+                nombre = partes[0]
+                estado = partes[-2] if len(partes) > 2 else ""
+                descripcion = " ".join(partes[1:-3]) if len(partes) > 4 else ""
+                servicios.append({
+                    "nombre": nombre,
+                    "estado": estado,
+                    "descripcion": descripcion
+                })
+        return render_template('servicios_activos.html', servicios=servicios)
+    except Exception as e:
+        return render_template('servicios_activos.html', servicios=[], error=str(e))
+
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5000))
