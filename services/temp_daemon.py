@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from influxdb import InfluxDBClient
+import uuid
 
 #def leer_temperatura():
 #    # Simulación: reemplazá con lectura real si tenés sensor
@@ -15,10 +16,23 @@ def escribir_en_influx(valor):
     client = InfluxDBClient(host='localhost', port=8086)
     client.switch_database('metrics')
 
+#    punto = [{
+#        "measurement": "temperatura",
+#        "time": datetime.utcnow().isoformat(),
+#        "fields": {"valor": valor}
+#    }]
+
     punto = [{
-        "measurement": "temperatura",
-        "time": datetime.utcnow().isoformat(),
-        "fields": {"valor": valor}
+	   "measurement": "temperatura",
+	    "time": datetime.utcnow().isoformat(),
+	    "fields": {
+	        "valor": valor,
+	        "inserted_at": datetime.utcnow().isoformat(),
+	        "uuid": str(uuid.uuid4())
+	    },
+	    "tags": {
+	        "sensor": "raspi1"
+	    }
     }]
 
     client.write_points(punto)
