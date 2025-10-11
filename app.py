@@ -60,6 +60,7 @@ def contar_registros_influxdb(client, measurement='temperatura'):
     except Exception as e:
         print(f"Error al contar registros: {e}")
         return 0
+
 ### ----------------------------------------------- ###
 @app.route('/tabla')
 def tabla():
@@ -460,8 +461,8 @@ def listar_endpoints():
         'total_endpoints': len(endpoints),
         'endpoints': endpoints
     })
-### ----------------------------------------------- ###
 
+### ----------------------------------------------- ###
 if __name__ == '__main__':
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5000))
