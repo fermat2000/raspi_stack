@@ -17,7 +17,22 @@
 </head>
 <body>
 <div class="container">
-    <h1>Servicios Activos (systemctl)</h1>
+    <div class="navigation">
+        <a href="/indice" class="nav-link">🏠 Inicio</a>
+        <a href="/endpoints" class="nav-link">📊 API JSON</a>
+        <a href="/grafico" class="nav-link">📊 API Gráfico</a>
+        <a href="/tabla" class="nav-link">📋 Tabla Simple</a>
+        <a href="/tabla-paginada" class="nav-link">📄 Tabla Paginada</a>
+        <a href="/datos" class="nav-link">🔗 Datos JSON</a>
+        <a href="/endpoints-page" class="nav-link">📋 Documentación</a>
+    </div>
+    <div class="header">
+        <h1>Servicios Activos (systemctl)</h1>
+        <div class="subtitle">Lista de todos los servicios activos en el sistema</div>
+    </div>
+
+    <div class="content">
+    
     {% if error %}
         <div class="error">{{ error }}</div>
     {% endif %}
@@ -39,6 +54,8 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+
 </div>
 </body>
 </html>

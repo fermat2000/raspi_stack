@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Endpoints JSON</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }
+        h1 { text-align: center; }
+        .endpoint-card { margin-bottom: 24px; padding: 16px; border-radius: 8px; background: #eaf4fb; box-shadow: 0 1px 4px #ddd; }
+        .endpoint-url { font-weight: bold; color: #357abd; }
+        .endpoint-desc { color: #555; margin-bottom: 8px; }
+        .json-output {
+            background: #222;
+            color: #eee;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.95em;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            max-height: 350px;      /* scroll vertical */
+            overflow-y: auto;       /* scroll vertical */
+        }
+        button { background: #4a90e2; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #357abd; }
+    </style>
+    <script>
+        function cargarJson(url, outputId) {
+            fetch(url)
+                .then(resp => resp.json())
+                .then(data => {
+                    document.getElementById(outputId).textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(err => {
+                    document.getElementById(outputId).textContent = "Error: " + err;
+                });
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>Endpoints con salida JSON</h1>
+    {% for ep in endpoints %}
+    <div class="endpoint-card">
+        <div class="endpoint-url">{{ ep.url }}</div>
+        <div class="endpoint-desc">{{ ep.description }}</div>
+        <button onclick="cargarJson('{{ ep.url }}', 'output{{ loop.index }}')">Ver JSON</button>
+        <div id="output{{ loop.index }}" class="json-output"></div>
+    </div>
+    {% endfor %}
+</div>
+</body>
+</html>

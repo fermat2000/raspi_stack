@@ -24,7 +24,21 @@
 </head>
 <body>
 <div class="container">
-    <h1>Datos de Sistema Info</h1>
+    <div class="navigation">
+        <a href="/indice" class="nav-link">🏠 Inicio</a>
+        <a href="/endpoints" class="nav-link">📊 API JSON</a>
+        <a href="/grafico" class="nav-link">📊 API Gráfico</a>
+        <a href="/tabla" class="nav-link">📋 Tabla Simple</a>
+        <a href="/tabla-paginada" class="nav-link">📄 Tabla Paginada</a>
+        <a href="/datos" class="nav-link">🔗 Datos JSON</a>
+        <a href="/endpoints-page" class="nav-link">📋 Documentación</a>
+    </div>
+    <div class="header">
+        <h1>Datos de Sistema Info</h1>
+        <div class="subtitle">Sisteam - Arquitectura</div>
+    </div>
+
+    <div class="content">
     <form class="filtros" method="get">
         <label>Host:
             <select name="host">
@@ -102,6 +116,7 @@
     </div>
     <div style="margin-top:10px; text-align:right; color:#888;">
         Mostrando {{ datos|length }} de {{ total }} registros
+    </div>
     </div>
 </div>
 </body>
