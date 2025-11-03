@@ -2,7 +2,7 @@ from flask import Flask, jsonify, render_template, request
 import os
 from dotenv import load_dotenv
 from influxdb import InfluxDBClient
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import subprocess
 import math
 import platform
@@ -47,6 +47,75 @@ def get_last_commit_info():
         'date': 'N/A',
         'message': 'Git no disponible'
     }
+
+def get_local_timezone_offset():
+    """
+    Obtiene el offset de zona horaria local de la Raspberry Pi
+    """
+    try:
+        # Obtener el offset de zona horaria desde el sistema
+        result = subprocess.run(['date', '+%z'], stdout=subprocess.PIPE, text=True, check=True)
+        offset_str = result.stdout.strip()
+        
+        # Parsear offset (formato: +0300 o -0300)
+        if len(offset_str) == 5 and offset_str[0] in ['+', '-']:
+            sign = 1 if offset_str[0] == '+' else -1
+            hours = int(offset_str[1:3])
+            minutes = int(offset_str[3:5])
+            offset_seconds = sign * (hours * 3600 + minutes * 60)
+            return timezone(timedelta(seconds=offset_seconds))
+    except Exception as e:
+        print(f"Error obteniendo zona horaria: {e}")
+    
+    # Fallback: UTC-3 (zona horaria común en Argentina/Brasil)
+    return timezone(timedelta(hours=-3))
+
+def convert_utc_to_local(utc_dt_str):
+    """
+    Convierte un timestamp UTC a hora local de la Raspberry Pi
+    """
+    try:
+        # Parsear el timestamp UTC
+        time_str = utc_dt_str
+        
+        # Manejar diferentes formatos de timestamp de InfluxDB
+        dt_utc = None
+        
+        # Formato: 2025-10-23T01:21:26.002797 (con microsegundos, sin Z)
+        try:
+            dt_utc = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f")
+        except ValueError:
+            # Formato: 2025-10-23T01:21:26 (sin microsegundos, sin Z)
+            try:
+                dt_utc = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                # Formato con Z: 2025-10-23T01:21:26.002797Z
+                if time_str.endswith('Z'):
+                    try:
+                        dt_utc = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    except ValueError:
+                        dt_utc = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                else:
+                    # Último intento: ISO básico
+                    dt_utc = datetime.fromisoformat(time_str.replace('Z', '+00:00') if 'Z' in time_str else time_str)
+                    dt_utc = dt_utc.replace(tzinfo=None)  # Remover tzinfo si existe
+        
+        if dt_utc:
+            # Asignar timezone UTC
+            dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+            
+            # Convertir a zona horaria local
+            local_tz = get_local_timezone_offset()
+            dt_local = dt_utc.astimezone(local_tz)
+            
+            # Formatear con indicación de zona horaria local
+            return dt_local.strftime("%Y-%m-%d %H:%M:%S %z")
+        
+    except Exception as e:
+        print(f"Error convirtiendo timezone: {e}")
+    
+    # Fallback
+    return f"{utc_dt_str} (error de conversión)"
 
 def get_influxdb_client():
     host = os.environ.get('INFLUXDB_HOST', 'localhost')
@@ -163,34 +232,8 @@ def tabla_paginada():
     
     # Formatear las fechas para mostrar en la tabla
     for punto in puntos:
-        # Convierte el string ISO a datetime y lo formatea, manejando diferentes formatos UTC
-        try:
-            time_str = punto['time']
-            # Manejar diferentes formatos de timestamp de InfluxDB
-            
-            # Formato: 2025-10-23T01:21:26.002797 (con microsegundos, sin Z)
-            try:
-                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f")
-            except ValueError:
-                # Formato: 2025-10-23T01:21:26 (sin microsegundos, sin Z)
-                try:
-                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    # Formato con Z: 2025-10-23T01:21:26.002797Z
-                    if time_str.endswith('Z'):
-                        try:
-                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        except ValueError:
-                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
-                    else:
-                        # Último intento: ISO básico
-                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00') if 'Z' in time_str else time_str)
-            
-            # Formatear con indicación de zona horaria UTC
-            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-        except Exception as e:
-            # Fallback con información de debug
-            punto['time_fmt'] = f"{punto['time']} (error: {str(e)[:20]})"
+        # Convierte UTC a hora local de la Raspberry Pi
+        punto['time_fmt'] = convert_utc_to_local(punto['time'])
     
     return render_template('tabla_paginada.html', datos=puntos, paginacion=paginacion)
 
@@ -272,33 +315,8 @@ def tabla_sistema_info():
 
     # Formatear la fecha
     for punto in puntos:
-        try:
-            time_str = punto['time']
-            # Manejar diferentes formatos de timestamp de InfluxDB
-            
-            # Formato: 2025-10-23T01:21:26.002797 (con microsegundos, sin Z)
-            try:
-                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f")
-            except ValueError:
-                # Formato: 2025-10-23T01:21:26 (sin microsegundos, sin Z)
-                try:
-                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    # Formato con Z: 2025-10-23T01:21:26.002797Z
-                    if time_str.endswith('Z'):
-                        try:
-                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        except ValueError:
-                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
-                    else:
-                        # Último intento: ISO básico
-                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00') if 'Z' in time_str else time_str)
-            
-            # Formatear con indicación de zona horaria UTC
-            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-        except Exception as e:
-            # Fallback con información de debug
-            punto['time_fmt'] = f"{punto['time']} (error: {str(e)[:20]})"
+        # Convierte UTC a hora local de la Raspberry Pi
+        punto['time_fmt'] = convert_utc_to_local(punto['time'])
 
     # Obtener hosts y sistemas únicos para los filtros
     hosts = set()
