@@ -120,10 +120,27 @@ def tabla_paginada():
     
     # Formatear las fechas para mostrar en la tabla
     for punto in puntos:
-        # Convierte el string ISO a datetime y lo formatea
+        # Convierte el string ISO a datetime y lo formatea, manejando diferentes formatos UTC
         try:
-            dt = datetime.strptime(punto['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
-            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S")
+            time_str = punto['time']
+            # Manejar diferentes formatos de timestamp UTC de InfluxDB
+            if time_str.endswith('Z'):
+                # Intentar con microsegundos
+                try:
+                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                except ValueError:
+                    # Intentar sin microsegundos
+                    try:
+                        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                    except ValueError:
+                        # Fallback: remover Z y intentar parseado básico
+                        dt = datetime.strptime(time_str[:-1], "%Y-%m-%dT%H:%M:%S")
+            else:
+                # Formato sin Z
+                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
+            
+            # Formatear con indicación de zona horaria UTC
+            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
         except Exception:
             punto['time_fmt'] = punto['time']  # fallback si falla el parseo
     
@@ -208,8 +225,25 @@ def tabla_sistema_info():
     # Formatear la fecha
     for punto in puntos:
         try:
-            dt = datetime.strptime(punto['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
-            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S")
+            time_str = punto['time']
+            # Manejar diferentes formatos de timestamp UTC de InfluxDB
+            if time_str.endswith('Z'):
+                # Intentar con microsegundos
+                try:
+                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                except ValueError:
+                    # Intentar sin microsegundos
+                    try:
+                        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                    except ValueError:
+                        # Fallback: remover Z y intentar parseado básico
+                        dt = datetime.strptime(time_str[:-1], "%Y-%m-%dT%H:%M:%S")
+            else:
+                # Formato sin Z
+                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
+            
+            # Formatear con indicación de zona horaria UTC
+            punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
         except Exception:
             punto['time_fmt'] = punto['time']
 
