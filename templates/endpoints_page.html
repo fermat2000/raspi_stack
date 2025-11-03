@@ -305,6 +305,14 @@
         <div class="header">
             <h1>📋 API Documentation</h1>
             <div class="subtitle">Endpoints disponibles en la aplicación</div>
+            
+            <!-- Etiqueta de información del último commit -->
+            <div style="background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; padding: 8px; margin: 15px auto; font-size: 0.85em; color: rgba(255,255,255,0.9); text-align: center; max-width: 600px;">
+                <span>📝 Último commit:</span>
+                <strong>{{ ultimo_commit.hash }}</strong> - 
+                <span>{{ ultimo_commit.date }}</span> - 
+                <em>{{ ultimo_commit.message }}</em>
+            </div>
         </div>
         
         <div class="stats">

@@ -12,6 +12,42 @@ from sistema_info import get_info
 load_dotenv()
 app = Flask(__name__)
 
+def get_last_commit_info():
+    """
+    Obtiene información del último commit de Git
+    """
+    try:
+        # Obtener hash corto y fecha del último commit
+        result = subprocess.run(
+            ['git', 'log', '-1', '--pretty=format:%h|%ci|%s'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True,
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+        
+        if result.stdout:
+            parts = result.stdout.strip().split('|', 2)
+            commit_hash = parts[0]
+            commit_date_str = parts[1]
+            commit_message = parts[2] if len(parts) > 2 else "Sin mensaje"
+            
+            # Convertir fecha del commit a formato legible
+            commit_date = datetime.strptime(commit_date_str.split()[0] + ' ' + commit_date_str.split()[1], '%Y-%m-%d %H:%M:%S')
+            commit_date_fmt = commit_date.strftime('%Y-%m-%d %H:%M:%S')
+            
+            return {
+                'hash': commit_hash,
+                'date': commit_date_fmt,
+                'message': commit_message[:50] + '...' if len(commit_message) > 50 else commit_message
+            }
+    except Exception as e:
+        print(f"Error obteniendo info del commit: {e}")
+    
+    return {
+        'hash': 'unknown',
+        'date': 'N/A',
+        'message': 'Git no disponible'
+    }
+
 def get_influxdb_client():
     host = os.environ.get('INFLUXDB_HOST', 'localhost')
     port = int(os.environ.get('INFLUXDB_PORT', 8086))
@@ -24,6 +60,13 @@ def get_influxdb_client():
         client = InfluxDBClient(host=host, port=port)
     client.switch_database(database)
     return client
+
+@app.context_processor
+def inject_commit_info():
+    """
+    Inyecta información del último commit en todos los templates
+    """
+    return {'ultimo_commit': get_last_commit_info()}
 
 def contar_registros_influxdb(client, measurement='temperatura'):
     """
@@ -123,26 +166,31 @@ def tabla_paginada():
         # Convierte el string ISO a datetime y lo formatea, manejando diferentes formatos UTC
         try:
             time_str = punto['time']
-            # Manejar diferentes formatos de timestamp UTC de InfluxDB
-            if time_str.endswith('Z'):
-                # Intentar con microsegundos
+            # Manejar diferentes formatos de timestamp de InfluxDB
+            
+            # Formato: 2025-10-23T01:21:26.002797 (con microsegundos, sin Z)
+            try:
+                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f")
+            except ValueError:
+                # Formato: 2025-10-23T01:21:26 (sin microsegundos, sin Z)
                 try:
-                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
                 except ValueError:
-                    # Intentar sin microsegundos
-                    try:
-                        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
-                    except ValueError:
-                        # Fallback: remover Z y intentar parseado básico
-                        dt = datetime.strptime(time_str[:-1], "%Y-%m-%dT%H:%M:%S")
-            else:
-                # Formato sin Z
-                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
+                    # Formato con Z: 2025-10-23T01:21:26.002797Z
+                    if time_str.endswith('Z'):
+                        try:
+                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        except ValueError:
+                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                    else:
+                        # Último intento: ISO básico
+                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00') if 'Z' in time_str else time_str)
             
             # Formatear con indicación de zona horaria UTC
             punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-        except Exception:
-            punto['time_fmt'] = punto['time']  # fallback si falla el parseo
+        except Exception as e:
+            # Fallback con información de debug
+            punto['time_fmt'] = f"{punto['time']} (error: {str(e)[:20]})"
     
     return render_template('tabla_paginada.html', datos=puntos, paginacion=paginacion)
 
@@ -226,26 +274,31 @@ def tabla_sistema_info():
     for punto in puntos:
         try:
             time_str = punto['time']
-            # Manejar diferentes formatos de timestamp UTC de InfluxDB
-            if time_str.endswith('Z'):
-                # Intentar con microsegundos
+            # Manejar diferentes formatos de timestamp de InfluxDB
+            
+            # Formato: 2025-10-23T01:21:26.002797 (con microsegundos, sin Z)
+            try:
+                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f")
+            except ValueError:
+                # Formato: 2025-10-23T01:21:26 (sin microsegundos, sin Z)
                 try:
-                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
                 except ValueError:
-                    # Intentar sin microsegundos
-                    try:
-                        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
-                    except ValueError:
-                        # Fallback: remover Z y intentar parseado básico
-                        dt = datetime.strptime(time_str[:-1], "%Y-%m-%dT%H:%M:%S")
-            else:
-                # Formato sin Z
-                dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
+                    # Formato con Z: 2025-10-23T01:21:26.002797Z
+                    if time_str.endswith('Z'):
+                        try:
+                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        except ValueError:
+                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                    else:
+                        # Último intento: ISO básico
+                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00') if 'Z' in time_str else time_str)
             
             # Formatear con indicación de zona horaria UTC
             punto['time_fmt'] = dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-        except Exception:
-            punto['time_fmt'] = punto['time']
+        except Exception as e:
+            # Fallback con información de debug
+            punto['time_fmt'] = f"{punto['time']} (error: {str(e)[:20]})"
 
     # Obtener hosts y sistemas únicos para los filtros
     hosts = set()

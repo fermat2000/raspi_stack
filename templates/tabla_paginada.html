@@ -105,6 +105,14 @@
     <div class="container">
         <h1>📊 Datos de Temperatura (Paginado)</h1>
         
+        <!-- Etiqueta de información del último commit -->
+        <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 8px; margin: 10px 0; font-size: 0.85em; color: #6c757d; text-align: center;">
+            <span>📝 Último commit:</span>
+            <strong>{{ ultimo_commit.hash }}</strong> - 
+            <span>{{ ultimo_commit.date }}</span> - 
+            <em>{{ ultimo_commit.message }}</em>
+        </div>
+        
         <!-- Información de paginación -->
         <div class="info-paginacion">
             Mostrando {{ paginacion.inicio_registro }} - {{ paginacion.fin_registro }} 
